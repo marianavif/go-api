@@ -88,6 +88,23 @@ func TestArmazenamentoVitorias(t *testing.T) {
 	})
 }
 
+func TestRegistrarVitoriasEBuscarEstasVitorias(t *testing.T) {
+	jogador := "Maria"
+	armazenamento := NovoArmazenamentoJogadorEmMemoria()
+	servidor := ServidorJogador{armazenamento}
+
+	servidor.ServeHTTP(httptest.NewRecorder(), novaRequisicaoRegistrarVitoriaPost(jogador))
+	servidor.ServeHTTP(httptest.NewRecorder(), novaRequisicaoRegistrarVitoriaPost(jogador))
+	servidor.ServeHTTP(httptest.NewRecorder(), novaRequisicaoRegistrarVitoriaPost(jogador))
+
+	resposta := httptest.NewRecorder()
+	servidor.ServeHTTP(resposta, novaRequisicaoObterPontuacao(jogador))
+	verificarRespostaCodigoStatus(t, resposta.Code, http.StatusOK)
+
+	verificarCorpoRequisicao(t, resposta.Body.String(), "3")
+
+}
+
 func novaRequisicaoObterPontuacao(nome string) *http.Request {
 	requisicao, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("/jogadores/%s", nome), nil)
 	return requisicao

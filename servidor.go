@@ -39,13 +39,3 @@ func (s *ServidorJogador) registrarVitoria(w http.ResponseWriter, jogador string
 	s.armazenamento.RegistrarVitoria(jogador)
 	w.WriteHeader(http.StatusAccepted)
 }
-
-func ObterPontuacaoJogador(nome string) string {
-	if nome == "Maria" {
-		return "20"
-	}
-	if nome == "Pedro" {
-		return "10"
-	}
-	return ""
-}
