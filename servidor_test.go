@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -10,11 +9,6 @@ import (
 
 type EsbocoArmazenamentoJogador struct {
 	pontuacoes        map[string]int
-	registrosVitorias []string
-}
-
-type EsbocoArmazenamentoJogadorDB struct {
-	pontuacoes        ArmazenamentoJogadorEmDB
 	registrosVitorias []string
 }
 
@@ -27,16 +21,6 @@ func (e *EsbocoArmazenamentoJogador) RegistrarVitoria(nome string) {
 	e.registrosVitorias = append(e.registrosVitorias, nome)
 }
 
-func (e *EsbocoArmazenamentoJogadorDB) ObterPontuacaoJogador(nome string) int {
-	db := ConectaArmazenamentoJogadorEmDB()
-	pontuacao := pegaPontuacao(db, e.pontuacoes.tabela, nome)
-	return pontuacao
-}
-
-func (e *EsbocoArmazenamentoJogadorDB) RegistrarVitoria(nome string) {
-	e.registrosVitorias = append(e.registrosVitorias, nome)
-}
-
 func TestObterJogadores(t *testing.T) {
 	armazenamento := EsbocoArmazenamentoJogador{
 		map[string]int{
@@ -46,13 +30,8 @@ func TestObterJogadores(t *testing.T) {
 		nil,
 	}
 
-	armazenamentoDB := EsbocoArmazenamentoJogadorDB{
-		*CriaArmazenamentoJogadorEmDB("tabelateste"),
-		nil,
-	}
-
 	servidor := &ServidorJogador{&armazenamento}
-	servidorDB := &ServidorJogador{&armazenamentoDB}
+
 	t.Run("retornar resultado de Maria", func(t *testing.T) {
 		requisicao := novaRequisicaoObterPontuacao("Maria")
 		resposta := httptest.NewRecorder()
@@ -63,30 +42,11 @@ func TestObterJogadores(t *testing.T) {
 		verificarCorpoRequisicao(t, resposta.Body.String(), "20")
 	})
 
-	t.Run("retornar resultado de Maria da base de dados", func(t *testing.T) {
-		requisicao := novaRequisicaoObterPontuacao("Maria")
-		resposta := httptest.NewRecorder()
-
-		servidorDB.ServeHTTP(resposta, requisicao)
-
-		verificarRespostaCodigoStatus(t, resposta.Code, http.StatusOK)
-		verificarCorpoRequisicao(t, resposta.Body.String(), "20")
-	})
 	t.Run("retornar resultado de Pedro", func(t *testing.T) {
 		requisicao := novaRequisicaoObterPontuacao("Pedro")
 		resposta := httptest.NewRecorder()
 
 		servidor.ServeHTTP(resposta, requisicao)
-
-		verificarRespostaCodigoStatus(t, resposta.Code, http.StatusOK)
-		verificarCorpoRequisicao(t, resposta.Body.String(), "10")
-	})
-
-	t.Run("retornar resultado de Pedro da base de dados", func(t *testing.T) {
-		requisicao := novaRequisicaoObterPontuacao("Pedro")
-		resposta := httptest.NewRecorder()
-
-		servidorDB.ServeHTTP(resposta, requisicao)
 
 		verificarRespostaCodigoStatus(t, resposta.Code, http.StatusOK)
 		verificarCorpoRequisicao(t, resposta.Body.String(), "10")
@@ -100,14 +60,7 @@ func TestObterJogadores(t *testing.T) {
 
 		verificarRespostaCodigoStatus(t, resposta.Code, http.StatusNotFound)
 	})
-	t.Run("retorna 404 para jogador não encontrado na base de dados", func(t *testing.T) {
-		requisicao := novaRequisicaoObterPontuacao("Jorge")
-		resposta := httptest.NewRecorder()
 
-		servidorDB.ServeHTTP(resposta, requisicao)
-
-		verificarRespostaCodigoStatus(t, resposta.Code, http.StatusNotFound)
-	})
 }
 
 func TestArmazenamentoVitorias(t *testing.T) {
@@ -116,12 +69,7 @@ func TestArmazenamentoVitorias(t *testing.T) {
 		nil,
 	}
 
-	armazenamentoDB := EsbocoArmazenamentoJogadorDB{
-		*CriaArmazenamentoJogadorEmDB(zeraTabelaNaDB("tabelateste2")),
-		nil,
-	}
 	servidor := &ServidorJogador{&armazenamento}
-	servidorDB := &ServidorJogador{&armazenamentoDB}
 
 	t.Run("registra vitorias na chamada ao método HTTP POST", func(t *testing.T) {
 		jogador := "Maria"
@@ -138,24 +86,6 @@ func TestArmazenamentoVitorias(t *testing.T) {
 		}
 
 		if armazenamento.registrosVitorias[0] != jogador {
-			t.Errorf("não registrou o vencedor corretamente, recebi '%s', esperava '%s'", armazenamento.registrosVitorias[0], jogador)
-		}
-	})
-	t.Run("registra vitorias na chamada ao método HTTP POST via base de dados", func(t *testing.T) {
-		jogador := "Maria"
-
-		requisicao := novaRequisicaoRegistrarVitoriaPost(jogador)
-		resposta := httptest.NewRecorder()
-
-		servidorDB.ServeHTTP(resposta, requisicao)
-
-		verificarRespostaCodigoStatus(t, resposta.Code, http.StatusAccepted)
-
-		if len(armazenamentoDB.registrosVitorias) != 1 {
-			t.Errorf("verifiquei %d chamadas a RegistrarVitoria, esperava %d", len(armazenamento.registrosVitorias), 1)
-		}
-
-		if armazenamentoDB.registrosVitorias[0] != jogador {
 			t.Errorf("não registrou o vencedor corretamente, recebi '%s', esperava '%s'", armazenamento.registrosVitorias[0], jogador)
 		}
 	})
@@ -183,14 +113,4 @@ func verificarCorpoRequisicao(t *testing.T, recebido, esperado string) {
 	if recebido != esperado {
 		t.Errorf("corpo da requisição é inválido, obtive '%s', esperava '%s' ", recebido, esperado)
 	}
-}
-
-func zeraTabelaNaDB(tabela string) string {
-	db := ConectaArmazenamentoJogadorEmDB()
-	zeraTabela := fmt.Sprintf("delete from %s", tabela)
-	_, err := db.Exec(zeraTabela)
-	if err != nil {
-		log.Println("Não foi possível criar uma tabela nova:", err)
-	}
-	return tabela
 }
