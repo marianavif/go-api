@@ -15,7 +15,7 @@ const tipoDoConteudoJSON = "application/json"
 type EsbocoArmazenamentoJogador struct {
 	pontuacoes        map[string]int
 	registrosVitorias []string
-	liga              []Jogador
+	liga              Liga
 }
 
 func (e *EsbocoArmazenamentoJogador) ObterPontuacaoJogador(nome string) int {
@@ -27,7 +27,7 @@ func (e *EsbocoArmazenamentoJogador) RegistrarVitoria(nome string) {
 	e.registrosVitorias = append(e.registrosVitorias, nome)
 }
 
-func (e *EsbocoArmazenamentoJogador) ObterLiga() []Jogador {
+func (e *EsbocoArmazenamentoJogador) ObterLiga() Liga {
 	return e.liga
 }
 
@@ -169,14 +169,10 @@ func verificarCorpoRequisicao(t *testing.T, recebido, esperado string) {
 	}
 }
 
-func obterLigaDaResposta(t *testing.T, body io.Reader) (liga []Jogador) {
+func obterLigaDaResposta(t *testing.T, body io.Reader) []Jogador {
 	t.Helper()
-	err := json.NewDecoder(body).Decode(&liga)
-
-	if err != nil {
-		t.Fatalf("Não foi possível fazer parse da resposta do servido '%s' no slice de Jogador, '%v' ", body, err)
-	}
-	return
+	liga, _ := NovaLiga(body)
+	return liga
 }
 
 func verificaLiga(t *testing.T, obtido, esperado []Jogador) {
@@ -192,7 +188,8 @@ func novaRequisicaoDeLiga() *http.Request {
 }
 
 func verificaTipoDoConteudo(t *testing.T, resposta *httptest.ResponseRecorder, esperado string) {
-	if resposta.Result().Header.Get("content-type") != "application/json" {
+	t.Helper()
+	if resposta.Result().Header.Get("content-type") != esperado {
 		t.Errorf("resposta não obteve content-type de %s, obtido %v", esperado, resposta.Result().Header)
 	}
 }

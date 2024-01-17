@@ -6,10 +6,12 @@ import (
 	"net/http"
 )
 
+const jsonTipoDeConteudo = "application/json"
+
 type ArmazenamentoJogador interface {
 	ObterPontuacaoJogador(nome string) int
 	RegistrarVitoria(nome string)
-	ObterLiga() []Jogador
+	ObterLiga() Liga
 }
 
 type ServidorJogador struct {
@@ -22,14 +24,13 @@ type Jogador struct {
 	Vitorias int
 }
 
-func (s *ServidorJogador) manipulaLiga(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("content-type", "application/json")
+func (s *ServidorJogador) ManipulaLiga(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("content-type", jsonTipoDeConteudo)
 	json.NewEncoder(w).Encode(s.armazenamento.ObterLiga())
-
-	//w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusOK)
 }
 
-func (s *ServidorJogador) manipulaJogadores(w http.ResponseWriter, r *http.Request) {
+func (s *ServidorJogador) ManipulaJogadores(w http.ResponseWriter, r *http.Request) {
 	jogador := r.URL.Path[len("/jogadores/"):]
 
 	switch r.Method {
@@ -60,8 +61,8 @@ func NovoServidorJogador(armazenamento ArmazenamentoJogador) *ServidorJogador {
 	s.armazenamento = armazenamento
 
 	roteador := http.NewServeMux()
-	roteador.Handle("/liga", http.HandlerFunc(s.manipulaLiga))
-	roteador.Handle("/jogadores/", http.HandlerFunc(s.manipulaJogadores))
+	roteador.Handle("/liga", http.HandlerFunc(s.ManipulaLiga))
+	roteador.Handle("/jogadores/", http.HandlerFunc(s.ManipulaJogadores))
 
 	s.Handler = roteador
 

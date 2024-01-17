@@ -9,7 +9,10 @@ import (
 func TestRegistrarVitoriasEBuscarEstasVitorias(t *testing.T) {
 
 	jogador := "Maria"
-	armazenamento := NovoArmazenamentoJogadorEmMemoria()
+	bancoDeDados, limpaBancoDeDados := criaArquivoTemporario(t, `[]`)
+	defer limpaBancoDeDados()
+	armazenamento, err := NovoSistemaDeArquivoDeArmazenamentoJogador(bancoDeDados)
+	verificaSemErro(t, err)
 	servidor := NovoServidorJogador(armazenamento)
 
 	servidor.ServeHTTP(httptest.NewRecorder(), novaRequisicaoRegistrarVitoriaPost(jogador))

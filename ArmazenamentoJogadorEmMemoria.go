@@ -12,14 +12,10 @@ func (a *ArmazenamentoJogadorEmMemoria) RegistrarVitoria(nome string) {
 	a.armazenamento[nome]++
 }
 
-func (a *ArmazenamentoJogadorEmMemoria) ObterLiga() []Jogador {
-	var liga []Jogador
+func (a *ArmazenamentoJogadorEmMemoria) ObterLiga() Liga {
+	var liga Liga
 	for nome, vitorias := range a.armazenamento {
 		liga = append(liga, Jogador{nome, vitorias})
 	}
 	return liga
-}
-
-func NovoArmazenamentoJogadorEmMemoria() *ArmazenamentoJogadorEmMemoria {
-	return &ArmazenamentoJogadorEmMemoria{map[string]int{}}
 }
