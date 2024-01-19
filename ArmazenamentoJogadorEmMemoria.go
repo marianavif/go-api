@@ -1,4 +1,4 @@
-package main
+package poker
 
 type ArmazenamentoJogadorEmMemoria struct {
 	armazenamento map[string]int

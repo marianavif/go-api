@@ -1,38 +1,16 @@
-package main
+package poker
 
 import (
 	"encoding/json"
-	"fmt"
-	"io"
 	"net/http"
 	"net/http/httptest"
-	"reflect"
 	"testing"
 )
 
 const tipoDoConteudoJSON = "application/json"
 
-type EsbocoArmazenamentoJogador struct {
-	pontuacoes        map[string]int
-	registrosVitorias []string
-	liga              Liga
-}
-
-func (e *EsbocoArmazenamentoJogador) ObterPontuacaoJogador(nome string) int {
-	pontuacao := e.pontuacoes[nome]
-	return pontuacao
-}
-
-func (e *EsbocoArmazenamentoJogador) RegistrarVitoria(nome string) {
-	e.registrosVitorias = append(e.registrosVitorias, nome)
-}
-
-func (e *EsbocoArmazenamentoJogador) ObterLiga() Liga {
-	return e.liga
-}
-
 func TestObterJogadores(t *testing.T) {
-	armazenamento := EsbocoArmazenamentoJogador{
+	armazenamento := &EsbocoArmazenamentoJogador{
 		map[string]int{
 			"Maria": 20,
 			"Pedro": 10,
@@ -41,70 +19,64 @@ func TestObterJogadores(t *testing.T) {
 		nil,
 	}
 
-	servidor := NovoServidorJogador(&armazenamento)
+	servidor := NovoServidorJogador(armazenamento)
 	t.Run("retornar resultado de Maria", func(t *testing.T) {
-		requisicao := novaRequisicaoObterPontuacao("Maria")
+		requisicao := NovaRequisicaoObterPontuacao("Maria")
 		resposta := httptest.NewRecorder()
 
 		servidor.ServeHTTP(resposta, requisicao)
 
-		verificarRespostaCodigoStatus(t, resposta.Code, http.StatusOK)
-		verificarCorpoRequisicao(t, resposta.Body.String(), "20")
+		VerificarRespostaCodigoStatus(t, resposta.Code, http.StatusOK)
+		VerificarCorpoRequisicao(t, resposta.Body.String(), "20")
 	})
 
 	t.Run("retornar resultado de Pedro", func(t *testing.T) {
-		requisicao := novaRequisicaoObterPontuacao("Pedro")
+		requisicao := NovaRequisicaoObterPontuacao("Pedro")
 		resposta := httptest.NewRecorder()
 
 		servidor.ServeHTTP(resposta, requisicao)
 
-		verificarRespostaCodigoStatus(t, resposta.Code, http.StatusOK)
-		verificarCorpoRequisicao(t, resposta.Body.String(), "10")
+		VerificarRespostaCodigoStatus(t, resposta.Code, http.StatusOK)
+		VerificarCorpoRequisicao(t, resposta.Body.String(), "10")
 	})
 
 	t.Run("retorna 404 para jogador não encontrado", func(t *testing.T) {
-		requisicao := novaRequisicaoObterPontuacao("Jorge")
+		requisicao := NovaRequisicaoObterPontuacao("Jorge")
 		resposta := httptest.NewRecorder()
 
 		servidor.ServeHTTP(resposta, requisicao)
 
-		verificarRespostaCodigoStatus(t, resposta.Code, http.StatusNotFound)
+		VerificarRespostaCodigoStatus(t, resposta.Code, http.StatusNotFound)
 	})
 
 }
 
 func TestArmazenamentoVitorias(t *testing.T) {
-	armazenamento := EsbocoArmazenamentoJogador{
+	armazenamento := &EsbocoArmazenamentoJogador{
 		map[string]int{},
 		nil,
 		nil,
 	}
 
-	servidor := NovoServidorJogador(&armazenamento)
+	servidor := NovoServidorJogador(armazenamento)
 
 	t.Run("registra vitorias na chamada ao método HTTP POST", func(t *testing.T) {
 		jogador := "Maria"
 
-		requisicao := novaRequisicaoRegistrarVitoriaPost(jogador)
+		requisicao := NovaRequisicaoRegistrarVitoriaPost(jogador)
 		resposta := httptest.NewRecorder()
 
 		servidor.ServeHTTP(resposta, requisicao)
 
-		verificarRespostaCodigoStatus(t, resposta.Code, http.StatusAccepted)
+		VerificarRespostaCodigoStatus(t, resposta.Code, http.StatusAccepted)
 
-		if len(armazenamento.registrosVitorias) != 1 {
-			t.Errorf("verifiquei %d chamadas a RegistrarVitoria, esperava %d", len(armazenamento.registrosVitorias), 1)
-		}
-
-		if armazenamento.registrosVitorias[0] != jogador {
-			t.Errorf("não registrou o vencedor corretamente, recebi '%s', esperava '%s'", armazenamento.registrosVitorias[0], jogador)
-		}
+		VerificaVitoriaJogador(t, armazenamento, jogador)
 	})
 }
 
 func TestLiga(t *testing.T) {
-	armazenamento := EsbocoArmazenamentoJogador{}
-	servidor := NovoServidorJogador(&armazenamento)
+	armazenamento := &EsbocoArmazenamentoJogador{}
+	servidor := NovoServidorJogador(armazenamento)
 
 	t.Run("retorna 200 em /liga", func(t *testing.T) {
 		requisicao, _ := http.NewRequest(http.MethodGet, "/liga", nil)
@@ -120,7 +92,7 @@ func TestLiga(t *testing.T) {
 			t.Fatalf("Não foi possível fazer parse da resposta do servidor '%s'no slice de Jogador, '%v' ", resposta.Body, err)
 		}
 
-		verificarRespostaCodigoStatus(t, resposta.Code, http.StatusOK)
+		VerificarRespostaCodigoStatus(t, resposta.Code, http.StatusOK)
 	})
 	t.Run("retorna a tabela da Liga como JSON", func(t *testing.T) {
 		ligaEsperada := []Jogador{
@@ -129,67 +101,18 @@ func TestLiga(t *testing.T) {
 			{"Tiest", 14},
 		}
 
-		armazenamento := EsbocoArmazenamentoJogador{nil, nil, ligaEsperada}
-		servidor := NovoServidorJogador(&armazenamento)
+		armazenamento := &EsbocoArmazenamentoJogador{nil, nil, ligaEsperada}
+		servidor := NovoServidorJogador(armazenamento)
 
-		requisicao := novaRequisicaoDeLiga()
+		requisicao := NovaRequisicaoDeLiga()
 		resposta := httptest.NewRecorder()
 
 		servidor.ServeHTTP(resposta, requisicao)
 
-		obtido := obterLigaDaResposta(t, resposta.Body)
-		verificarRespostaCodigoStatus(t, resposta.Code, http.StatusOK)
-		verificaLiga(t, obtido, ligaEsperada)
-		verificaTipoDoConteudo(t, resposta, tipoDoConteudoJSON)
+		obtido := ObterLigaDaResposta(t, resposta.Body)
+		VerificarRespostaCodigoStatus(t, resposta.Code, http.StatusOK)
+		VerificaLiga(t, obtido, ligaEsperada)
+		VerificaTipoDoConteudo(t, resposta, tipoDoConteudoJSON)
 	})
 
-}
-
-func novaRequisicaoObterPontuacao(nome string) *http.Request {
-	requisicao, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("/jogadores/%s", nome), nil)
-	return requisicao
-}
-
-func novaRequisicaoRegistrarVitoriaPost(nome string) *http.Request {
-	requisicao, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("/jogadores/%s", nome), nil)
-	return requisicao
-}
-
-func verificarRespostaCodigoStatus(t *testing.T, recebido, esperado int) {
-	t.Helper()
-	if recebido != esperado {
-		t.Errorf("não recebeu código de status HTTP esperado, recebido %d, esperado %d", recebido, esperado)
-	}
-}
-
-func verificarCorpoRequisicao(t *testing.T, recebido, esperado string) {
-	t.Helper()
-	if recebido != esperado {
-		t.Errorf("corpo da requisição é inválido, obtive '%s', esperava '%s' ", recebido, esperado)
-	}
-}
-
-func obterLigaDaResposta(t *testing.T, body io.Reader) []Jogador {
-	t.Helper()
-	liga, _ := NovaLiga(body)
-	return liga
-}
-
-func verificaLiga(t *testing.T, obtido, esperado []Jogador) {
-	t.Helper()
-	if !reflect.DeepEqual(obtido, esperado) {
-		t.Errorf("obtido %v esperado %v", obtido, esperado)
-	}
-}
-
-func novaRequisicaoDeLiga() *http.Request {
-	req, _ := http.NewRequest(http.MethodGet, "/liga", nil)
-	return req
-}
-
-func verificaTipoDoConteudo(t *testing.T, resposta *httptest.ResponseRecorder, esperado string) {
-	t.Helper()
-	if resposta.Result().Header.Get("content-type") != esperado {
-		t.Errorf("resposta não obteve content-type de %s, obtido %v", esperado, resposta.Result().Header)
-	}
 }

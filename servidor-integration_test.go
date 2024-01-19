@@ -1,4 +1,4 @@
-package main
+package poker
 
 import (
 	"net/http"
@@ -15,27 +15,27 @@ func TestRegistrarVitoriasEBuscarEstasVitorias(t *testing.T) {
 	verificaSemErro(t, err)
 	servidor := NovoServidorJogador(armazenamento)
 
-	servidor.ServeHTTP(httptest.NewRecorder(), novaRequisicaoRegistrarVitoriaPost(jogador))
-	servidor.ServeHTTP(httptest.NewRecorder(), novaRequisicaoRegistrarVitoriaPost(jogador))
-	servidor.ServeHTTP(httptest.NewRecorder(), novaRequisicaoRegistrarVitoriaPost(jogador))
+	servidor.ServeHTTP(httptest.NewRecorder(), NovaRequisicaoRegistrarVitoriaPost(jogador))
+	servidor.ServeHTTP(httptest.NewRecorder(), NovaRequisicaoRegistrarVitoriaPost(jogador))
+	servidor.ServeHTTP(httptest.NewRecorder(), NovaRequisicaoRegistrarVitoriaPost(jogador))
 
 	t.Run("obter pontuação", func(t *testing.T) {
 		resposta := httptest.NewRecorder()
-		servidor.ServeHTTP(resposta, novaRequisicaoObterPontuacao(jogador))
-		verificarRespostaCodigoStatus(t, resposta.Code, http.StatusOK)
+		servidor.ServeHTTP(resposta, NovaRequisicaoObterPontuacao(jogador))
+		VerificarRespostaCodigoStatus(t, resposta.Code, http.StatusOK)
 
-		verificarCorpoRequisicao(t, resposta.Body.String(), "3")
+		VerificarCorpoRequisicao(t, resposta.Body.String(), "3")
 	})
 
 	t.Run("obter liga", func(t *testing.T) {
 		resposta := httptest.NewRecorder()
-		servidor.ServeHTTP(resposta, novaRequisicaoDeLiga())
-		verificarRespostaCodigoStatus(t, resposta.Code, http.StatusOK)
+		servidor.ServeHTTP(resposta, NovaRequisicaoDeLiga())
+		VerificarRespostaCodigoStatus(t, resposta.Code, http.StatusOK)
 
-		obtido := obterLigaDaResposta(t, resposta.Body)
+		obtido := ObterLigaDaResposta(t, resposta.Body)
 		esperado := []Jogador{
 			{"Maria", 3},
 		}
-		verificaLiga(t, obtido, esperado)
+		VerificaLiga(t, obtido, esperado)
 	})
 }

@@ -1,4 +1,4 @@
-package main
+package poker
 
 import (
 	"encoding/json"
@@ -59,6 +59,26 @@ func NovoSistemaDeArquivoDeArmazenamentoJogador(arquivo *os.File) (*SistemaDeArq
 		bancoDeDados: json.NewEncoder(&fita{arquivo}),
 		liga:         liga,
 	}, nil
+}
+
+func SistemaDeArquivoDeArmazenamentoJogadorAPartirDeArquivo(path string) (*SistemaDeArquivoDeArmazenamentoJogador, func(), error) {
+	db, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0666)
+
+	if err != nil {
+		return nil, nil, fmt.Errorf("falha ao abrir %s %v", path, err)
+	}
+
+	closeFunc := func() {
+		db.Close()
+	}
+
+	armazenamento, err := NovoSistemaDeArquivoDeArmazenamentoJogador(db)
+
+	if err != nil {
+		return nil, nil, fmt.Errorf("falha ao criar sistema de arquivos para armazenar jogadores, %v", err)
+	}
+
+	return armazenamento, closeFunc, nil
 }
 
 func iniciaArquivoBDDeJogador(arquivo *os.File) error {

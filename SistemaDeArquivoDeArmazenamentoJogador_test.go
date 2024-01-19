@@ -1,4 +1,4 @@
-package main
+package poker
 
 import (
 	"io/ioutil"
@@ -26,11 +26,11 @@ func TestSistemaDeArquivoDeArmazenamentoJogador(t *testing.T) {
 			{"Cleo", 10},
 		}
 
-		verificaLiga(t, recebido, esperado)
+		VerificaLiga(t, recebido, esperado)
 
 		// ler novamente
 		recebido = armazenamento.ObterLiga()
-		verificaLiga(t, recebido, esperado)
+		VerificaLiga(t, recebido, esperado)
 	})
 
 	t.Run("pegar pontuação do jogador", func(t *testing.T) {
