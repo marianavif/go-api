@@ -18,7 +18,11 @@ func main() {
 	}
 	defer close()
 
+	jogo := poker.NovoTexasHoldem(poker.AlertadorDeBlindFunc(poker.StdOutAlertador), armazenamento)
+	cli := poker.NovoCLI(os.Stdin, os.Stdout, jogo)
+
 	fmt.Println("Vamos jogar poker")
 	fmt.Println("Digite {Nome} venceu para registrar uma vitoria")
-	poker.NovoCLI(armazenamento, os.Stdin).JogarPoker()
+
+	cli.JogarPoker()
 }
