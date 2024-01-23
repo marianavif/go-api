@@ -22,7 +22,7 @@ func TestRegistrarVitoriasEBuscarEstasVitorias(t *testing.T) {
 	t.Run("obter pontuação", func(t *testing.T) {
 		resposta := httptest.NewRecorder()
 		servidor.ServeHTTP(resposta, NovaRequisicaoObterPontuacao(jogador))
-		VerificarRespostaCodigoStatus(t, resposta.Code, http.StatusOK)
+		VerificarRespostaCodigoStatus(t, resposta, http.StatusOK)
 
 		VerificarCorpoRequisicao(t, resposta.Body.String(), "3")
 	})
@@ -30,7 +30,7 @@ func TestRegistrarVitoriasEBuscarEstasVitorias(t *testing.T) {
 	t.Run("obter liga", func(t *testing.T) {
 		resposta := httptest.NewRecorder()
 		servidor.ServeHTTP(resposta, NovaRequisicaoDeLiga())
-		VerificarRespostaCodigoStatus(t, resposta.Code, http.StatusOK)
+		VerificarRespostaCodigoStatus(t, resposta, http.StatusOK)
 
 		obtido := ObterLigaDaResposta(t, resposta.Body)
 		esperado := []Jogador{

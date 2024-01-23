@@ -62,10 +62,20 @@ func NovaRequisicaoRegistrarVitoriaPost(nome string) *http.Request {
 	return requisicao
 }
 
-func VerificarRespostaCodigoStatus(t *testing.T, recebido, esperado int) {
+func NovaRequisicaoDeLiga() *http.Request {
+	req, _ := http.NewRequest(http.MethodGet, "/liga", nil)
+	return req
+}
+
+func NovaRequisicaoDeJogo() *http.Request {
+	req, _ := http.NewRequest(http.MethodGet, "/jogo", nil)
+	return req
+}
+
+func VerificarRespostaCodigoStatus(t *testing.T, recebido *httptest.ResponseRecorder, esperado int) {
 	t.Helper()
-	if recebido != esperado {
-		t.Errorf("não recebeu código de status HTTP esperado, recebido %d, esperado %d", recebido, esperado)
+	if recebido.Code != esperado {
+		t.Errorf("não recebeu código de status HTTP esperado, recebido %d, esperado %d", recebido.Code, esperado)
 	}
 }
 
@@ -87,11 +97,6 @@ func VerificaLiga(t *testing.T, obtido, esperado []Jogador) {
 	if !reflect.DeepEqual(obtido, esperado) {
 		t.Errorf("obtido %v esperado %v", obtido, esperado)
 	}
-}
-
-func NovaRequisicaoDeLiga() *http.Request {
-	req, _ := http.NewRequest(http.MethodGet, "/liga", nil)
-	return req
 }
 
 func VerificaTipoDoConteudo(t *testing.T, resposta *httptest.ResponseRecorder, esperado string) {
