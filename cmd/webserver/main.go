@@ -17,7 +17,11 @@ func main() {
 	}
 	defer close()
 
-	servidor := poker.NovoServidorJogador(armazenamento)
+	servidor, err := poker.NovoServidorJogador(armazenamento)
+
+	if err != nil {
+		panic(err)
+	}
 
 	if err := http.ListenAndServe(":5000", servidor); err != nil {
 		log.Fatalf("Não foi possível escutar na porta 5000 %v", err)

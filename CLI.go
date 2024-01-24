@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -34,7 +35,7 @@ func (cli *CLI) JogarPoker() {
 		return
 	}
 
-	cli.jogo.Iniciar(numeroDeJogadores)
+	cli.jogo.Iniciar(numeroDeJogadores, os.Stdout)
 
 	vencedorInput := cli.readLine()
 	vencedor, err := extrairVencedor(vencedorInput)

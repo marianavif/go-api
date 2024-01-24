@@ -16,7 +16,7 @@ type EspiaoJogo struct {
 	TerminoChamado    bool
 }
 
-func (e *EspiaoJogo) Iniciar(numeroDeJogadores int) {
+func (e *EspiaoJogo) Iniciar(numeroDeJogadores int, destinoDosAlertas io.Writer) {
 	e.InicioChamado = true
 	e.InicioChamadoCom = numeroDeJogadores
 }
@@ -29,14 +29,14 @@ func (e *EspiaoJogo) Terminar(vencedor string) {
 func TestCLI(t *testing.T) {
 	t.Run("inicia jogo com 3 jogadores e termina jogo com vencedor 'Chris'", func(t *testing.T) {
 		jogo := &EspiaoJogo{}
-		stdout := &bytes.Buffer{}
+		saida := &bytes.Buffer{}
 
 		in := usuarioEnvia("3", "Chris venceu")
-		cli := poker.NovoCLI(in, stdout, jogo)
+		cli := poker.NovoCLI(in, saida, jogo)
 
 		cli.JogarPoker()
 
-		verificaMensagensEnviadasAoUsuario(t, stdout, poker.ComandoJogador)
+		verificaMensagensEnviadasAoUsuario(t, saida, poker.ComandoJogador)
 		verificaJogoIniciadoCom(t, jogo, 3)
 		verificaTerminoChamadoCom(t, jogo, "Chris")
 
@@ -46,7 +46,7 @@ func TestCLI(t *testing.T) {
 		jogo := &EspiaoJogo{}
 
 		in := usuarioEnvia("8", "Cleo venceu")
-		cli := poker.NovoCLI(in, poker.DummyStdOut, jogo)
+		cli := poker.NovoCLI(in, poker.DummySaida, jogo)
 
 		cli.JogarPoker()
 
@@ -57,27 +57,27 @@ func TestCLI(t *testing.T) {
 	t.Run("imprime um erro quando um valor nao numerico é inserido e nao inicia o jogo", func(t *testing.T) {
 		jogo := &EspiaoJogo{}
 
-		stdout := &bytes.Buffer{}
+		saida := &bytes.Buffer{}
 		in := usuarioEnvia("tortas")
 
-		cli := poker.NovoCLI(in, stdout, jogo)
+		cli := poker.NovoCLI(in, saida, jogo)
 		cli.JogarPoker()
 
 		verificaJogoNaoIniciado(t, jogo)
-		verificaMensagensEnviadasAoUsuario(t, stdout, poker.ComandoJogador, poker.MensagemErroJogadorInvalido)
+		verificaMensagensEnviadasAoUsuario(t, saida, poker.ComandoJogador, poker.MensagemErroJogadorInvalido)
 	})
 
 	t.Run("imprime um erro quando o vencedor é declarado incorretamente", func(t *testing.T) {
 		jogo := &EspiaoJogo{}
-		stdout := &bytes.Buffer{}
+		saida := &bytes.Buffer{}
 
 		in := usuarioEnvia("8", "Lloyd é um assassino")
-		cli := poker.NovoCLI(in, stdout, jogo)
+		cli := poker.NovoCLI(in, saida, jogo)
 
 		cli.JogarPoker()
 
 		verificaJogoNaoTerminado(t, jogo)
-		verificaMensagensEnviadasAoUsuario(t, stdout, poker.ComandoJogador, poker.MensagemErroVencedorInvalido)
+		verificaMensagensEnviadasAoUsuario(t, saida, poker.ComandoJogador, poker.MensagemErroVencedorInvalido)
 	})
 }
 
@@ -95,12 +95,12 @@ func verificaJogoNaoTerminado(t *testing.T, jogo *EspiaoJogo) {
 	}
 }
 
-func verificaMensagensEnviadasAoUsuario(t *testing.T, stdout *bytes.Buffer, mensagens ...string) {
+func verificaMensagensEnviadasAoUsuario(t *testing.T, saida *bytes.Buffer, mensagens ...string) {
 	t.Helper()
 	esperado := strings.Join(mensagens, "")
-	recebido := stdout.String()
+	recebido := saida.String()
 	if recebido != esperado {
-		t.Errorf("obteve '%s' enviado para stdout mas esperava %+v", esperado, mensagens)
+		t.Errorf("obteve '%s' enviado para saida mas esperava %+v", esperado, mensagens)
 	}
 }
 

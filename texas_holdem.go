@@ -1,20 +1,24 @@
 package poker
 
-import "time"
+import (
+	"io"
+	"os"
+	"time"
+)
 
 type TexasHoldem struct {
 	alertador     AlertadorDeBlind
 	armazenamento ArmazenamentoJogador
 }
 
-func (j *TexasHoldem) Iniciar(numeroDeJogadores int) {
+func (j *TexasHoldem) Iniciar(numeroDeJogadores int, destinoDosAlertas io.Writer) {
 	incrementoDeBlind := time.Duration(5+numeroDeJogadores) * time.Minute
 
 	blinds := []int{100, 200, 300, 400, 500, 600, 800, 1000, 2000, 4000, 8000}
 	tempoDeBlind := 0 * time.Second
 
 	for _, blind := range blinds {
-		j.alertador.AgendarAlertaAs(tempoDeBlind, blind)
+		j.alertador.AgendarAlertaPara(tempoDeBlind, blind, os.Stdout)
 		tempoDeBlind = tempoDeBlind + incrementoDeBlind
 	}
 }

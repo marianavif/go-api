@@ -9,12 +9,14 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/gorilla/websocket"
 )
 
 var DummyEspiaoAlertador = &EspiaoAlertadorDeBlind{}
 var DummyArmazenamentoJogador = &EsbocoArmazenamentoJogador{}
 var DummyStdIn = &bytes.Buffer{}
-var DummyStdOut = &bytes.Buffer{}
+var DummySaida = &bytes.Buffer{}
 
 type EsbocoArmazenamentoJogador struct {
 	pontuacoes        map[string]int
@@ -31,7 +33,7 @@ type EspiaoAlertadorDeBlind struct {
 	Alertas []AlertaAgendado
 }
 
-func (e *EspiaoAlertadorDeBlind) AgendarAlertaAs(duracao time.Duration, quantidade int) {
+func (e *EspiaoAlertadorDeBlind) AgendarAlertaPara(duracao time.Duration, quantidade int, para io.Writer) {
 	e.Alertas = append(e.Alertas, AlertaAgendado{duracao, quantidade})
 }
 
@@ -50,6 +52,32 @@ func (e *EsbocoArmazenamentoJogador) RegistrarVitoria(nome string) {
 
 func (e *EsbocoArmazenamentoJogador) ObterLiga() Liga {
 	return e.liga
+}
+
+func DeveFazerServidorJogador(t *testing.T, armazenamento ArmazenamentoJogador) *ServidorJogador {
+	servidor, err := NovoServidorJogador(armazenamento)
+	if err != nil {
+		t.Fatal("problema ao criar o servidor do jogador", err)
+	}
+	return servidor
+}
+
+func DeveConectarAoWebSocket(t *testing.T, url string) *websocket.Conn {
+	t.Helper()
+	ws, _, err := websocket.DefaultDialer.Dial(url, nil)
+
+	if err != nil {
+		t.Fatalf("não foi possível abrir uma conexao de websocket em %s %v", url, err)
+	}
+
+	return ws
+}
+
+func EscreverMensagemNoWebsocket(t *testing.T, conexao *websocket.Conn, mensagem string) {
+	t.Helper()
+	if err := conexao.WriteMessage(websocket.TextMessage, []byte(mensagem)); err != nil {
+		t.Fatalf("não foi possível enviar mensagem na conexão websocket %v", err)
+	}
 }
 
 func NovaRequisicaoObterPontuacao(nome string) *http.Request {

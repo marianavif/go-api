@@ -6,25 +6,67 @@
     </head>
     <body>
         <section id="jogo">
+            <div id="jogo-inicio">
+                <label for="contagem-jogador">Número de jogadores</label>
+                <input type="number" id="contagem-jogador"/>
+                <button id="iniciar-jogo">Começar</button>
+            </div>
+
             <div id="declarar-vencedor">
                 <label for="vecendor">Vencedor</label>
                 <input type="text" id="vencedor"/>
                 <button id="vencedor-botao">Declarar vencedor</button>
             </div>
+            
+            <div id="valor-blind"></div>
+        </section>
+
+        <section id="fim-jogo">
+            <h1>Outro ótimo jogo de poquer, pessoal!!</h1>
+            <p><a href="/liga">Verifique a tabela da liga</a></p>
         </section>
     </body>
     <script type="application/javascript">
 
+        const iniciarJogo = document.getElementById('jogo-inicio')
+        const declararVencedor = document.getElementById('declarar-vencedor')
         const submeterVencedorBotao = document.getElementById('vencedor-botao')
         const entradaVencedor = document.getElementById('vencedor')
+        const blindContainer = document.getElementById('valor-blind')
+        const jogoContainer = document.getElementById('jogo')
+        const fimJogoContainer = document.getElementById('fim-jogo')
 
-        if (window['WebSocket']) {
-            const conexao = new WebSocket('ws://' + document.location.host + '/ws')
+        declararVencedor.hidden = true
+        fimJogoContainer.hidden = true
 
-            submeterVencedorBotao.onclick = event => {
-                conexao.send(entradaVencedor.value)
+        document.getElementById('iniciar-jogo').addEventListener('click', event => {
+            iniciarJogo.hidden = true
+            declararVencedor.hidden = false
+
+            const numeroDeJogadores = document.getElementById('contagem-jogador').value
+
+            if(window['WebSocket']){
+                const conexao = new WebSocket('ws://'+ document.location.host + '/ws')
+
+                submeterVencedorBotao.onclick = event => {
+                    conexao.send(entradaVencedor.value)
+                    fimJogoContainer.hidden = false
+                    jogoContainer.hidden = true
+                }
+
+                conexao.onclose = evt => {
+                    blindContainer.innerText = 'Connection closed'
+                }
+
+                conexao.onmessage = evt => {
+                    blindContainer.innerText = evt.data
+                }
+
+                conexao.onopen = function(){
+                    conexao.send(numeroDeJogadores)
+                }
             }
-        }
+        })
 
     </script>
 </html>

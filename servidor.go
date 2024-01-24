@@ -10,6 +10,7 @@ import (
 )
 
 const jsonTipoDeConteudo = "application/json"
+const caminhoTemplateHTML = "jogo.html"
 
 type ArmazenamentoJogador interface {
 	ObterPontuacaoJogador(nome string) int
@@ -20,11 +21,17 @@ type ArmazenamentoJogador interface {
 type ServidorJogador struct {
 	armazenamento ArmazenamentoJogador
 	http.Handler
+	template *template.Template
 }
 
 type Jogador struct {
 	Nome     string
 	Vitorias int
+}
+
+var atualizadorDeWebsocket = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
 }
 
 func (s *ServidorJogador) ManipulaLiga(w http.ResponseWriter, r *http.Request) {
@@ -60,28 +67,26 @@ func (s *ServidorJogador) registrarVitoria(w http.ResponseWriter, jogador string
 }
 
 func (s *ServidorJogador) jogo(w http.ResponseWriter, r *http.Request) {
-	tmpl, err := template.ParseFiles("jogo.html")
-
-	if err != nil {
-		http.Error(w, fmt.Sprintf("problema carregando template %s", err.Error()), http.StatusInternalServerError)
-		return
-	}
-	tmpl.Execute(w, nil)
+	s.template.Execute(w, nil)
 }
 
 func (s *ServidorJogador) webSocket(w http.ResponseWriter, r *http.Request) {
-	upgrader := websocket.Upgrader{
-		ReadBufferSize:  1024,
-		WriteBufferSize: 1024,
-	}
-	conexao, _ := upgrader.Upgrade(w, r, nil)
+	conexao, _ := atualizadorDeWebsocket.Upgrade(w, r, nil)
 	_, msgVencedor, _ := conexao.ReadMessage()
 	s.armazenamento.RegistrarVitoria(string(msgVencedor))
 
 }
 
-func NovoServidorJogador(armazenamento ArmazenamentoJogador) *ServidorJogador {
+func NovoServidorJogador(armazenamento ArmazenamentoJogador) (*ServidorJogador, error) {
 	s := new(ServidorJogador)
+
+	tmpl, err := template.ParseFiles(caminhoTemplateHTML)
+
+	if err != nil {
+		return nil, fmt.Errorf("problema ao abrir %s %v", caminhoTemplateHTML, err)
+	}
+
+	s.template = tmpl
 	s.armazenamento = armazenamento
 
 	roteador := http.NewServeMux()
@@ -92,5 +97,5 @@ func NovoServidorJogador(armazenamento ArmazenamentoJogador) *ServidorJogador {
 
 	s.Handler = roteador
 
-	return s
+	return s, nil
 }

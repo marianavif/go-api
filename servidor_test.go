@@ -7,8 +7,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/gorilla/websocket"
 )
 
 const tipoDoConteudoJSON = "application/json"
@@ -23,7 +21,7 @@ func TestObterJogadores(t *testing.T) {
 		nil,
 	}
 
-	servidor := NovoServidorJogador(armazenamento)
+	servidor := DeveFazerServidorJogador(t, armazenamento)
 	t.Run("retornar resultado de Maria", func(t *testing.T) {
 		requisicao := NovaRequisicaoObterPontuacao("Maria")
 		resposta := httptest.NewRecorder()
@@ -62,7 +60,7 @@ func TestArmazenamentoVitorias(t *testing.T) {
 		nil,
 	}
 
-	servidor := NovoServidorJogador(armazenamento)
+	servidor := DeveFazerServidorJogador(t, armazenamento)
 
 	t.Run("registra vitorias na chamada ao método HTTP POST", func(t *testing.T) {
 		jogador := "Maria"
@@ -80,7 +78,7 @@ func TestArmazenamentoVitorias(t *testing.T) {
 
 func TestLiga(t *testing.T) {
 	armazenamento := &EsbocoArmazenamentoJogador{}
-	servidor := NovoServidorJogador(armazenamento)
+	servidor := DeveFazerServidorJogador(t, armazenamento)
 
 	t.Run("retorna 200 em /liga", func(t *testing.T) {
 		requisicao, _ := http.NewRequest(http.MethodGet, "/liga", nil)
@@ -106,7 +104,7 @@ func TestLiga(t *testing.T) {
 		}
 
 		armazenamento := &EsbocoArmazenamentoJogador{nil, nil, ligaEsperada}
-		servidor := NovoServidorJogador(armazenamento)
+		servidor := DeveFazerServidorJogador(t, armazenamento)
 
 		requisicao := NovaRequisicaoDeLiga()
 		resposta := httptest.NewRecorder()
@@ -123,7 +121,7 @@ func TestLiga(t *testing.T) {
 
 func TestJogo(t *testing.T) {
 	t.Run("GET /jogo retorna 200", func(t *testing.T) {
-		servidor := NovoServidorJogador(&EsbocoArmazenamentoJogador{})
+		servidor := DeveFazerServidorJogador(t, &EsbocoArmazenamentoJogador{})
 
 		requisicao := NovaRequisicaoDeJogo()
 		resposta := httptest.NewRecorder()
@@ -136,20 +134,15 @@ func TestJogo(t *testing.T) {
 	t.Run("quando recebemos uma mensagem de um websocket que é vencedor do jogo", func(t *testing.T) {
 		armazenamento := &EsbocoArmazenamentoJogador{}
 		vencedor := "Ruth"
-		servidor := httptest.NewServer(NovoServidorJogador(armazenamento))
+		servidor := httptest.NewServer(DeveFazerServidorJogador(t, armazenamento))
 		defer servidor.Close()
 
 		wsURL := "ws" + strings.TrimPrefix(servidor.URL, "http") + "/ws"
 
-		ws, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
-		if err != nil {
-			t.Fatalf("não foi possível abrir uma conexão de websocket em %s %v", wsURL, err)
-		}
+		ws := DeveConectarAoWebSocket(t, wsURL)
 		defer ws.Close()
 
-		if err := ws.WriteMessage(websocket.TextMessage, []byte(vencedor)); err != nil {
-			t.Fatalf("não foi possível enviar mensagem na conexão websocket %v", err)
-		}
+		EscreverMensagemNoWebsocket(t, ws, vencedor)
 
 		time.Sleep(10 * time.Millisecond)
 		VerificaVitoriaJogador(t, armazenamento, vencedor)

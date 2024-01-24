@@ -1,6 +1,7 @@
 package poker_test
 
 import (
+	"os"
 	"testing"
 	"time"
 
@@ -12,7 +13,7 @@ func TestInicioDoJogo(t *testing.T) {
 		alertadorDeBlind := &poker.EspiaoAlertadorDeBlind{}
 		jogo := poker.NovoTexasHoldem(alertadorDeBlind, poker.DummyArmazenamentoJogador)
 
-		jogo.Iniciar(5)
+		jogo.Iniciar(5, os.Stdout)
 
 		casos := []poker.AlertaAgendado{
 			{As: 0 * time.Second, Quantidade: 100},
@@ -36,7 +37,7 @@ func TestInicioDoJogo(t *testing.T) {
 		alertadorDeBlind := &poker.EspiaoAlertadorDeBlind{}
 		jogo := poker.NovoTexasHoldem(alertadorDeBlind, poker.DummyArmazenamentoJogador)
 
-		jogo.Iniciar(7)
+		jogo.Iniciar(7, os.Stdout)
 
 		casos := []poker.AlertaAgendado{
 			{As: 0 * time.Second, Quantidade: 100},
