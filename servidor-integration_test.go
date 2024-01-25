@@ -13,7 +13,7 @@ func TestRegistrarVitoriasEBuscarEstasVitorias(t *testing.T) {
 	defer limpaBancoDeDados()
 	armazenamento, err := NovoSistemaDeArquivoDeArmazenamentoJogador(bancoDeDados)
 	verificaSemErro(t, err)
-	servidor := DeveFazerServidorJogador(t, armazenamento)
+	servidor := DeveFazerServidorJogador(t, armazenamento, DummyJogo)
 
 	servidor.ServeHTTP(httptest.NewRecorder(), NovaRequisicaoRegistrarVitoriaPost(jogador))
 	servidor.ServeHTTP(httptest.NewRecorder(), NovaRequisicaoRegistrarVitoriaPost(jogador))

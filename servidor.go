@@ -3,7 +3,9 @@ package poker
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
+	"strconv"
 	"text/template"
 
 	"github.com/gorilla/websocket"
@@ -22,11 +24,16 @@ type ServidorJogador struct {
 	armazenamento ArmazenamentoJogador
 	http.Handler
 	template *template.Template
+	jogo     Jogo
 }
 
 type Jogador struct {
 	Nome     string
 	Vitorias int
+}
+
+type websocketServidorJogador struct {
+	*websocket.Conn
 }
 
 var atualizadorDeWebsocket = websocket.Upgrader{
@@ -66,18 +73,42 @@ func (s *ServidorJogador) registrarVitoria(w http.ResponseWriter, jogador string
 	w.WriteHeader(http.StatusAccepted)
 }
 
-func (s *ServidorJogador) jogo(w http.ResponseWriter, r *http.Request) {
+func (s *ServidorJogador) jogarJogo(w http.ResponseWriter, r *http.Request) {
 	s.template.Execute(w, nil)
 }
 
 func (s *ServidorJogador) webSocket(w http.ResponseWriter, r *http.Request) {
-	conexao, _ := atualizadorDeWebsocket.Upgrade(w, r, nil)
-	_, msgVencedor, _ := conexao.ReadMessage()
-	s.armazenamento.RegistrarVitoria(string(msgVencedor))
+	ws := NovoWebsocketServidorJogador(w, r)
+
+	mensagemNumeroDeJogadores := ws.EsperarPelaMensagem()
+	numeroDeJogadores, _ := strconv.Atoi(string(mensagemNumeroDeJogadores))
+	s.jogo.Iniciar(numeroDeJogadores, ws)
+
+	vencedor := ws.EsperarPelaMensagem()
+	s.jogo.Terminar(string(vencedor))
 
 }
 
-func NovoServidorJogador(armazenamento ArmazenamentoJogador) (*ServidorJogador, error) {
+func (w *websocketServidorJogador) EsperarPelaMensagem() string {
+	_, msg, err := w.ReadMessage()
+	if err != nil {
+		log.Printf("erro ao ler do websocket %v\n", err)
+	}
+
+	return string(msg)
+}
+
+func (w *websocketServidorJogador) Write(p []byte) (n int, err error) {
+	err = w.WriteMessage(1, p)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return len(p), nil
+}
+
+func NovoServidorJogador(armazenamento ArmazenamentoJogador, jogo Jogo) (*ServidorJogador, error) {
 	s := new(ServidorJogador)
 
 	tmpl, err := template.ParseFiles(caminhoTemplateHTML)
@@ -86,16 +117,28 @@ func NovoServidorJogador(armazenamento ArmazenamentoJogador) (*ServidorJogador, 
 		return nil, fmt.Errorf("problema ao abrir %s %v", caminhoTemplateHTML, err)
 	}
 
+	s.jogo = jogo
+
 	s.template = tmpl
 	s.armazenamento = armazenamento
 
 	roteador := http.NewServeMux()
 	roteador.Handle("/liga", http.HandlerFunc(s.ManipulaLiga))
 	roteador.Handle("/jogadores/", http.HandlerFunc(s.ManipulaJogadores))
-	roteador.Handle("/jogo", http.HandlerFunc(s.jogo))
+	roteador.Handle("/jogo", http.HandlerFunc(s.jogarJogo))
 	roteador.Handle("/ws", http.HandlerFunc(s.webSocket))
 
 	s.Handler = roteador
 
 	return s, nil
+}
+
+func NovoWebsocketServidorJogador(w http.ResponseWriter, r *http.Request) *websocketServidorJogador {
+	conexao, err := atualizadorDeWebsocket.Upgrade(w, r, nil)
+
+	if err != nil {
+		log.Printf("houve um problema ao atualizar a conexao para WebSockets %v\n", err)
+	}
+
+	return &websocketServidorJogador{conexao}
 }

@@ -17,11 +17,20 @@ var DummyEspiaoAlertador = &EspiaoAlertadorDeBlind{}
 var DummyArmazenamentoJogador = &EsbocoArmazenamentoJogador{}
 var DummyStdIn = &bytes.Buffer{}
 var DummySaida = &bytes.Buffer{}
+var DummyJogo = &EspiaoJogo{}
+
+type EspiaoJogo struct {
+	InicioChamadoCom  int
+	TerminoChamadoCom string
+	InicioChamado     bool
+	TerminoChamado    bool
+	AlertaDeBlind     []byte
+}
 
 type EsbocoArmazenamentoJogador struct {
-	pontuacoes        map[string]int
+	Pontuacoes        map[string]int
 	RegistrosVitorias []string
-	liga              Liga
+	Liga              Liga
 }
 
 type AlertaAgendado struct {
@@ -33,6 +42,17 @@ type EspiaoAlertadorDeBlind struct {
 	Alertas []AlertaAgendado
 }
 
+func (e *EspiaoJogo) Iniciar(numeroDeJogadores int, saida io.Writer) {
+	e.InicioChamado = true
+	e.InicioChamadoCom = numeroDeJogadores
+	saida.Write(e.AlertaDeBlind)
+}
+
+func (e *EspiaoJogo) Terminar(vencedor string) {
+	e.TerminoChamado = true
+	e.TerminoChamadoCom = vencedor
+}
+
 func (e *EspiaoAlertadorDeBlind) AgendarAlertaPara(duracao time.Duration, quantidade int, para io.Writer) {
 	e.Alertas = append(e.Alertas, AlertaAgendado{duracao, quantidade})
 }
@@ -42,7 +62,7 @@ func (a *AlertaAgendado) String() string {
 }
 
 func (e *EsbocoArmazenamentoJogador) ObterPontuacaoJogador(nome string) int {
-	pontuacao := e.pontuacoes[nome]
+	pontuacao := e.Pontuacoes[nome]
 	return pontuacao
 }
 
@@ -51,11 +71,11 @@ func (e *EsbocoArmazenamentoJogador) RegistrarVitoria(nome string) {
 }
 
 func (e *EsbocoArmazenamentoJogador) ObterLiga() Liga {
-	return e.liga
+	return e.Liga
 }
 
-func DeveFazerServidorJogador(t *testing.T, armazenamento ArmazenamentoJogador) *ServidorJogador {
-	servidor, err := NovoServidorJogador(armazenamento)
+func DeveFazerServidorJogador(t *testing.T, armazenamento ArmazenamentoJogador, jogo *EspiaoJogo) *ServidorJogador {
+	servidor, err := NovoServidorJogador(armazenamento, jogo)
 	if err != nil {
 		t.Fatal("problema ao criar o servidor do jogador", err)
 	}
@@ -172,5 +192,29 @@ func VerificaCasosAgendados(t *testing.T, casos []AlertaAgendado, alertadorDeBli
 
 			VerificaAlertaAgendado(t, alerta, esperado)
 		})
+	}
+}
+
+func VerificaSeWebSocketObteveMensagem(t *testing.T, ws *websocket.Conn, esperado string) {
+	_, msg, _ := ws.ReadMessage()
+	if string(msg) != esperado {
+		t.Errorf(`obtido "%s", esperado "%s"`, string(msg), esperado)
+	}
+}
+
+func Within(t *testing.T, d time.Duration, assert func()) {
+	t.Helper()
+
+	done := make(chan struct{}, 1)
+
+	go func() {
+		assert()
+		done <- struct{}{}
+	}()
+
+	select {
+	case <-time.After(d):
+		t.Error("timed out")
+	case <-done:
 	}
 }

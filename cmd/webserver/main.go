@@ -17,10 +17,11 @@ func main() {
 	}
 	defer close()
 
-	servidor, err := poker.NovoServidorJogador(armazenamento)
+	jogo := poker.NovoTexasHoldem(poker.AlertadorDeBlindFunc(poker.Alertador), armazenamento)
+	servidor, err := poker.NovoServidorJogador(armazenamento, jogo)
 
 	if err != nil {
-		panic(err)
+		log.Fatalf("problema ao criar o servidor do jogador %v", err)
 	}
 
 	if err := http.ListenAndServe(":5000", servidor); err != nil {
